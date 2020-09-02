@@ -1,28 +1,35 @@
+// vuex 的 store 引入 api/user 中的用户登录、获取用户信息、用户退出方法
 import { login, logout, getInfo } from '@/api/user'
 import { getToken, setToken, removeToken } from '@/utils/auth'
-import router, { resetRouter } from '@/router'
+import { resetRouter } from '@/router'
 
 const state = {
   token: getToken(),
   name: '',
   avatar: '',
   introduction: '',
-  roles: []
+  roles: [],
+  permissions: []
 }
 
 const mutations = {
+  // token
   SET_TOKEN: (state, token) => {
     state.token = token
   },
-  SET_INTRODUCTION: (state, introduction) => {
-    state.introduction = introduction
+  // 用户权限
+  SET_PERMISSIONS: (state, permissions) => {
+    state.permissions = permissions
   },
+  // 用户名
   SET_NAME: (state, name) => {
     state.name = name
   },
+  // 用户头像
   SET_AVATAR: (state, avatar) => {
     state.avatar = avatar
   },
+  // 用户角色
   SET_ROLES: (state, roles) => {
     state.roles = roles
   }
@@ -34,10 +41,12 @@ const actions = {
     // 从userInfo里面取出username和password
     const { username, password } = userInfo
     return new Promise((resolve, reject) => {
+      // 调用 API
       login({ username: username.trim(), password: password }).then(response => {
-        const { data } = response
-        commit('SET_TOKEN', data.token)
-        setToken(data.token)
+        const { token } = response
+        // 放置 token 到 vuex
+        commit('SET_TOKEN', token)
+        setToken(token)
         resolve()
       }).catch(error => {
         reject(error)
@@ -48,24 +57,18 @@ const actions = {
   // 获取用户信息
   getInfo({ commit, state }) {
     return new Promise((resolve, reject) => {
+      // 调用获取用户信息的方法
       getInfo(state.token).then(response => {
-        const { data } = response
+        const { username, picture, roles, permissions } = response
 
-        if (!data) {
-          reject('Verification failed, please Login again.')
+        if (!username) {
+          reject('用户未登陆,请登陆！')
         }
-
-        const { roles, name, avatar } = data
-
-        // roles must be a non-empty array
-        if (!roles || roles.length <= 0) {
-          reject('getInfo: roles must be a non-null array!')
-        }
-
         commit('SET_ROLES', roles)// 用户角色
-        commit('SET_NAME', name)// 用户名
-        commit('SET_AVATAR', avatar)// 头像
-        resolve(data)
+        commit('SET_NAME', username)// 用户名
+        commit('SET_AVATAR', picture)// 用户头像
+        commit('SET_PERMISSIONS', permissions)// 用户权限
+        resolve(response)
       }).catch(error => {
         reject(error)
       })
@@ -76,12 +79,12 @@ const actions = {
   logout({ commit, state, dispatch }) {
     return new Promise((resolve, reject) => {
       logout(state.token).then(() => {
+        // 清空 vuex 中的信息
         commit('SET_TOKEN', '')
         commit('SET_ROLES', [])
+        commit('SET_PERMISSIONS', [])
         removeToken()
-        resetRouter()
-        // reset visited views and cached views
-        // to fixed https://github.com/PanJiaChen/vue-element-admin/issues/2485
+        resetRouter() // 重置路由
         dispatch('tagsView/delAllViews', null, { root: true })
 
         resolve()
@@ -91,40 +94,17 @@ const actions = {
     })
   },
 
-  // remove token
+  // 删除 token
   resetToken({ commit }) {
     return new Promise(resolve => {
       commit('SET_TOKEN', '')
       commit('SET_ROLES', [])
+      commit('SET_PERMISSIONS', [])
       removeToken()
       resolve()
     })
-  },
-
-  // dynamically modify permissions
-  changeRoles({ commit, dispatch }, role) {
-    return new Promise(async resolve => {
-      const token = role + '-token'
-
-      commit('SET_TOKEN', token)
-      setToken(token)
-
-      const { roles } = await dispatch('getInfo')
-
-      resetRouter()
-
-      // generate accessible routes map based on roles
-      const accessRoutes = await dispatch('permission/generateRoutes', roles, { root: true })
-
-      // dynamically add accessible routes
-      router.addRoutes(accessRoutes)
-
-      // reset visited views and cached views
-      dispatch('tagsView/delAllViews', null, { root: true })
-
-      resolve()
-    })
   }
+
 }
 
 export default {

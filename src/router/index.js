@@ -53,6 +53,10 @@ export const constantRoutes = [
     ]
   }
 ]
+/**
+ * 动态路由
+ * path 与数据库中的 path 字段相对应
+ */
 export const asyncRoutes = [
   {
     path: '/system',
@@ -363,6 +367,9 @@ export const asyncRoutes = [
     ]
   }
 ]
+/**
+ * 最终路由
+ */
 export const lastRoute = [
   {
     path: '/dict',
