@@ -1,12 +1,12 @@
 import axios from 'axios'
-import { MessageBox, Message } from 'element-ui'
+import { MessageBox, Message, Notification } from 'element-ui'
 import store from '@/store'
 import { getToken } from '@/utils/auth'
 
 // 创建一个 axios 实例
 const service = axios.create({
   baseURL: process.env.VUE_APP_BASE_API, // url = base url + request url
-  timeout: 5000 // 请求超时时间
+  timeout: 10000 // 请求超时时间
 })
 
 // 前置请求拦截器
